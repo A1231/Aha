@@ -16,8 +16,8 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public User createUser(String name, boolean isHost, Long roomId) {
-        Long userId = UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE;
+    public User createUser(String name, boolean isHost, String roomId) {
+        String userId = String.valueOf(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
         User user = new User(userId, name, 0, isHost, roomId);
         
         User savedUser = userRepository.save(user);

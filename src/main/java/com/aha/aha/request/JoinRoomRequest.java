@@ -1,18 +1,20 @@
 package com.aha.aha.request;
 
-import jakarta.validation.constraints.NotBlank;
+
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 
 public class JoinRoomRequest {
-    @NotBlank(message = "Room id is required")
-    private Long roomId;
+    @NotEmpty(message = "Room id is required")
+    private String roomId;
 
-    @NotBlank(message = "Password is required")
+    @NotEmpty(message = "Password is required")
     private String password;
 
-    @NotBlank(message = "Player name is required")
+    @NotEmpty(message = "Player name is required")
     private String playerName;
 
-    public Long getRoomId() {
+    public String getRoomId() {
         return roomId;
     }
     
@@ -24,7 +26,7 @@ public class JoinRoomRequest {
         return playerName;
     }
 
-    public void setRoomId(Long roomId) {
+    public void setRoomId(String roomId) {
         this.roomId = roomId;
     }
     

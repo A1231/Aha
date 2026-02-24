@@ -26,12 +26,12 @@ public class RoomService {
 
     public RoomResponse createRoom(String hostName, String topic, int maxPlayers) {
 
-        Long roomId = UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE;
+        String roomId = String.valueOf(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
         String password = passwordGenerator.generatePassword();
 
         //create the host user
         User hostUser = userService.createUser(hostName, true, roomId);
-        Long hostId = hostUser.getId();
+        String hostId = hostUser.getId();
 
         //create the room
         Room room = new Room(roomId, topic, maxPlayers, hostId, LocalDateTime.now(), password);
@@ -44,19 +44,19 @@ public class RoomService {
         return new RoomResponse(room.getRoomId(), room.getTopic(), room.getMaxPlayers(), room.getPassword(), room.getHostId());
     }
 
-    public void joinRoom(Long roomId, String password, String playerName) {
+    public void joinRoom(String roomId, String password, String playerName) {
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Room not found"));
         if (!room.getPassword().equals(password)) {
             throw new RuntimeException("Invalid password");
         }
 
-        if (room.getPlayers().size() >= room.getMaxPlayers()) {
+        if (room.getPlayers() != null && room.getPlayers().size() >= room.getMaxPlayers()) {
             throw new RuntimeException("Room is full");
         }
 
         //create player
         User newPlayer = userService.createUser(playerName, false, roomId);
-        room.getPlayers().add(newPlayer);
+        room.getPlayers().add(newPlayer.getId());
         roomRepository.save(room);
         
     }

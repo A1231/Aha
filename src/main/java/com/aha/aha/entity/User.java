@@ -6,17 +6,17 @@ import org.springframework.data.redis.core.RedisHash;
 @RedisHash("user")
 public class User {
     @Id
-    private Long  id;
+    private String  id;
     private String  name;
     private int score;
     private boolean isHost;
-    private Long roomId;
+    private String roomId;
     //private String ipAddress;
 
     public User() {
     }
 
-    public User(Long id, String name, int score, boolean isHost, Long roomId) {
+    public User(String id, String name, int score, boolean isHost, String roomId) {
         this.id = id;
         this.name = name;
         this.score = score;
@@ -24,11 +24,11 @@ public class User {
         this.roomId = roomId;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -57,11 +57,11 @@ public class User {
     }
 
 
-    public long getRoomId() {
+    public String getRoomId() {
         return roomId;
     }
 
-    public void setRoomId(Long roomId) {
+    public void setRoomId(String roomId) {
         this.roomId = roomId;
     }
 

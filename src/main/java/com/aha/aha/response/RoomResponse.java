@@ -2,14 +2,14 @@ package com.aha.aha.response;
 
 public class RoomResponse {
     
-    private final Long roomId;
+    private final String roomId;
     private final String topic;
     private final int maxPlayers;
     private final String password;
-    private final Long hostId;
+    private final String hostId;
     
 
-    public RoomResponse(Long roomId, String topic, int maxPlayers,  String password, Long hostId) {
+    public RoomResponse(String roomId, String topic, int maxPlayers,  String password, String hostId) {
         this.roomId = roomId;
         this.topic = topic;
         this.maxPlayers = maxPlayers;
@@ -17,7 +17,7 @@ public class RoomResponse {
         this.hostId = hostId;
     }
 
-    public Long getRoomId() {
+    public String getRoomId() {
         return roomId;
     }
 
@@ -33,7 +33,7 @@ public class RoomResponse {
         return password;
     }
 
-    public Long getHostId() {
+    public String getHostId() {
         return hostId;
     }
 

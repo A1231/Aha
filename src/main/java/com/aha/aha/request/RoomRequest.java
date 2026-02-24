@@ -3,19 +3,21 @@ package com.aha.aha.request;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 
 public class RoomRequest {
 
-    @NotBlank(message = "Topic is required")
+    @NotEmpty(message = "Topic is required")
     private String topic;
 
     @Min(2)
     @Max(10)
+    @NotNull(message = "Max players is required")
     private int maxPlayers;
 
-    @NotBlank(message = "Host name is required")
+    @NotEmpty(message = "Host name is required")
     private String hostName;
 
 
