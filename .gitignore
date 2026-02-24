@@ -1,0 +1,92 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+pom.xml.tag
+pom.releaseBackup
+pom.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/jvm.config
+
+# Build
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+out/
+
+# Spring Boot
+HELP.md
+*.log
+logs/
+spring-boot-devtools.properties
+
+# Redis
+dump.rdb
+appendonly.aof
+redis-data/
+redis.log
+redis.conf.local
+*.rdb
+
+# Local config (secrets, overrides)
+application-local.properties
+application-local.yml
+*.env
+.env
+.env.local
+.env.*.local
+
+# IDE - IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# IDE - Eclipse / STS
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+
+# IDE - VS Code
+.vscode/
+*.code-workspace
+
+# IDE - NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# Package files
+*.zip
+*.tar.gz
+*.rar
+
+# Cursor
+.cursor/
