@@ -18,9 +18,12 @@ public class Room {
     private LocalDateTime createdAt;
     private String password;
 
+    private List<String> questions; // Holds the Ids of the questions
+
    
     public Room() {
         this.players = new ArrayList<>();
+        this.questions = new ArrayList<>();
     }
 
     public Room(String roomId, String topic, int maxPlayers, String hostId, LocalDateTime createdAt, String password) {
@@ -31,6 +34,7 @@ public class Room {
         this.createdAt = createdAt;
         this.password = password;
         this.players = new ArrayList<>();
+        this.questions = new ArrayList<>();
         
     }
 
@@ -94,5 +98,14 @@ public class Room {
         this.players = players;
     }
 
+    public List<String> getQuestions() {
+        return questions;
+    }
+
+    public void setQuestions(List<String> questions) {
+        this.questions = questions;
+    }
+    
+    
     
 }

@@ -1,37 +1,39 @@
 package com.aha.aha.entity;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
+
+@RedisHash(value= "question", timeToLive = 86400) // 24 hours
 public class Question {
-    
-    private Long id;
+    @Id
+    private String id;
     private String text;
     private List<String> options;
     private int correctOptionIndex;
-    private int timeLimit;
-    private int points;
-    private int difficulty;
+    
 
-    public Question() {}
+    public Question() {
+        options = new ArrayList<>();
+    }
 
-    public Question(long id, String text, List<String> options, int correctOptionIndex, int timeLimit, int points, int difficulty) {
+    public Question(String id, String text, List<String> options, int correctOptionIndex) {
         this.id = id;
         this.text = text;
         this.options = options;
         this.correctOptionIndex = correctOptionIndex;
-        this.timeLimit = timeLimit;
-        this.points = points;
-        this.difficulty = difficulty;
     }
 
-    public long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(String id) {
         this.id = id;
     }
-    
+
     public String getText() {
         return text;
     }
@@ -39,7 +41,7 @@ public class Question {
     public void setText(String text) {
         this.text = text;
     }
-    
+
     public List<String> getOptions() {
         return options;
     }
@@ -47,36 +49,12 @@ public class Question {
     public void setOptions(List<String> options) {
         this.options = options;
     }
-    
+
     public int getCorrectOptionIndex() {
         return correctOptionIndex;
     }
 
     public void setCorrectOptionIndex(int correctOptionIndex) {
         this.correctOptionIndex = correctOptionIndex;
-    }
-    
-    public int getTimeLimit() {
-        return timeLimit;
-    }
-    
-    public void setTimeLimit(int timeLimit) {
-        this.timeLimit = timeLimit;
-    }
-    
-    public int getPoints() {
-        return points;
-    }
-    
-    public void setPoints(int points) {
-        this.points = points;
-    }
-    
-    public int getDifficulty() {
-        return difficulty;
-    }
-    
-    public void setDifficulty(int difficulty) {
-        this.difficulty = difficulty;
-    }
+    }   
 }
