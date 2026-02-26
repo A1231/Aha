@@ -1,10 +1,13 @@
 package com.aha.aha.controller;
 
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.aha.aha.entity.RoomSession;
 import com.aha.aha.entity.User;
+import com.aha.aha.repository.RoomSessionRepository;
 import com.aha.aha.request.JoinRoomRequest;
 import com.aha.aha.request.QuestionRequest;
 import com.aha.aha.request.QuestionSetRequest;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
@@ -32,9 +36,11 @@ public class Controller {
 
     
     private final RoomService roomService;
+    private final RoomSessionRepository roomSessionRepository;
 
-    public Controller(RoomService roomService) {
+    public Controller(RoomService roomService, RoomSessionRepository roomSessionRepository) {
         this.roomService = roomService;
+        this.roomSessionRepository = roomSessionRepository;
     }
 
 
@@ -47,31 +53,28 @@ public class Controller {
     @Operation(summary = "Create a new room", description = "Create a new room with the given host name, topic, and max players")
     @PostMapping("/api/rooms")
     @ResponseStatus(HttpStatus.CREATED)
-    public RoomResponse createRoom(HttpSession session, @RequestBody @Valid RoomRequest roomRequest) {
-        RoomResponse roomResponse = roomService.createRoom(roomRequest.getHostName(), roomRequest.getTopic(), roomRequest.getMaxPlayers());
+    public RoomResponse createRoom( @RequestBody @Valid RoomRequest roomRequest, HttpServletResponse response) {
+        RoomResponse roomResponse = roomService.createRoom(roomRequest.getHostName(), roomRequest.getTopic(), roomRequest.getMaxPlayers(), response);
 
-        session.setAttribute("roomId", roomResponse.getRoomId());
-        session.setAttribute("hostId", roomResponse.getHostId());
-        session.setAttribute("role", "HOST");
-
+        
         return roomResponse;
     }
 
     @Operation(summary = "Join a room", description = "Join a room with the given room id and password")
     @ResponseStatus(HttpStatus.OK)
     @PostMapping("/api/rooms/join")
-    public void joinRoom(HttpSession session, @RequestBody @Valid JoinRoomRequest joinRoomRequest) {
-        User newPlayer = roomService.joinRoom(joinRoomRequest.getRoomId(), joinRoomRequest.getPassword(), joinRoomRequest.getPlayerName());
+    public void joinRoom(@RequestBody @Valid JoinRoomRequest joinRoomRequest, HttpServletResponse response) {
+        User newPlayer = roomService.joinRoom(joinRoomRequest.getRoomId(), joinRoomRequest.getPassword(), joinRoomRequest.getPlayerName(), response);
 
-        session.setAttribute("playerId", newPlayer.getId());
-        session.setAttribute("role", "PLAYER");
+        
     }
 
     @Operation(summary = "Add questions to a room", description = "Add a question to a room with the given room id and question. Only the host can add questions.")
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/api/rooms/questions")
-    public void addQuestionsToRoom(HttpSession session, @RequestBody @Valid QuestionSetRequest questionSetRequest) {
-        if (!"HOST".equals(session.getAttribute("role"))) {
+    public void addQuestionsToRoom(@CookieValue("ROOM_SESSION") String roomSessionId, @RequestBody @Valid QuestionSetRequest questionSetRequest) {
+        RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId).orElseThrow(() -> new RuntimeException("Room session not found"));
+        if (!"HOST".equals(roomSession.getRole())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can add questions");
         }
         roomService.addQuestionsToRoom(questionSetRequest.getQuestions());

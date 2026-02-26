@@ -9,12 +9,17 @@ import org.springframework.stereotype.Service;
 
 import com.aha.aha.entity.Question;
 import com.aha.aha.entity.Room;
+import com.aha.aha.entity.RoomSession;
 import com.aha.aha.entity.User;
 import com.aha.aha.repository.QuestionRepository;
 import com.aha.aha.repository.RoomRepository;
+import com.aha.aha.repository.RoomSessionRepository;
 import com.aha.aha.request.QuestionRequest;
 import com.aha.aha.response.RoomResponse;
 import com.aha.aha.utility.PasswordGenerator;
+
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 
 
 
@@ -25,18 +30,19 @@ public class RoomService {
     private final PasswordGenerator passwordGenerator;
     private final UserService userService;
     private final QuestionRepository questionRepository;
+    private final RoomSessionRepository roomSessionRepository;
     
 
     public RoomService(RoomRepository roomRepository, PasswordGenerator passwordGenerator, 
-        UserService userService, QuestionRepository questionRepository) {
+        UserService userService, QuestionRepository questionRepository, RoomSessionRepository roomSessionRepository) {
         this.roomRepository = roomRepository;
         this.passwordGenerator = passwordGenerator;
         this.userService = userService;
         this.questionRepository = questionRepository;
-        
+        this.roomSessionRepository = roomSessionRepository;
     }
 
-    public RoomResponse createRoom(String hostName, String topic, int maxPlayers) {
+    public RoomResponse createRoom(String hostName, String topic, int maxPlayers, HttpServletResponse response) {
 
         String roomId = String.valueOf(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
         String password = passwordGenerator.generatePassword();
@@ -50,18 +56,36 @@ public class RoomService {
         Room savedRoom = roomRepository.save(room);
         RoomResponse roomResponse = convertToRoomResponse(savedRoom);
 
+        //create the room session
+        RoomSession roomSession = createRoomSession(roomId, hostUser.getId(), "HOST");
        
-
-
+        // Set the cookie
+        setRoomSessionCookie(roomSession.getRoomSessionId(), response);
 
         return roomResponse;
     }
+
+    public RoomSession createRoomSession(String roomId, String userId, String role) {
+        String roomSessionId = String.valueOf(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
+        Long timeToLive = 86400L; // 24 hours
+        RoomSession roomSession = new RoomSession(roomSessionId, roomId, userId, role, timeToLive);
+        roomSessionRepository.save(roomSession);
+        return roomSession;
+    }
+
+    public void setRoomSessionCookie(String roomSessionId, HttpServletResponse response) {
+        Cookie cookie = new Cookie("ROOM_SESSION", roomSessionId);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(86400); // 1 day in seconds
+        response.addCookie(cookie);
+    }   
 
     private RoomResponse convertToRoomResponse(Room room) {
         return new RoomResponse(room.getRoomId(), room.getTopic(), room.getMaxPlayers(), room.getPassword(), room.getHostId());
     }
 
-    public User joinRoom(String roomId, String password, String playerName) {
+    public User joinRoom(String roomId, String password, String playerName, HttpServletResponse response) {
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Room not found"));
         if (!room.getPassword().equals(password)) {
             throw new RuntimeException("Invalid password");
@@ -75,6 +99,13 @@ public class RoomService {
         User newPlayer = userService.createUser(playerName, false, roomId);
         room.getPlayers().add(newPlayer.getId());
         roomRepository.save(room);
+
+        //create room session
+        RoomSession roomSession = createRoomSession(roomId, newPlayer.getId(), "PLAYER");
+        setRoomSessionCookie(roomSession.getRoomSessionId(), response);
+
+        //set the cookie
+        setRoomSessionCookie(roomSession.getRoomSessionId(), response);
 
         return newPlayer;
     }
