@@ -76,6 +76,7 @@
         const joinErrorEl = document.getElementById('joinError');
         let stompClient = null;
         let currentSubscription = null;
+        let gameStartedSubscription = null;
 
         function log(msg) {
             const time = new Date().toLocaleTimeString();
@@ -143,7 +144,13 @@
                     const body = JSON.parse(payload.body);
                     log('Room update: ' + body.message + ' (roomId: ' + body.roomId + ')');
                 });
-                log('Subscribed to ' + topic + '. Join as player (step 3) to see the broadcast.');
+                const gameStartedTopic = '/topic/room/' + roomId + '/game-started';
+                if (gameStartedSubscription) gameStartedSubscription.unsubscribe();
+                gameStartedSubscription = stompClient.subscribe(gameStartedTopic, function (payload) {
+                    const body = JSON.parse(payload.body);
+                    log('Game started: ' + body.message + ' (roomId: ' + body.roomId + ')');
+                });
+                log('Subscribed to ' + topic + ' and ' + gameStartedTopic + '. Join as player (step 3) to see the broadcast.');
             }, function (err) {
                 log('Connection error: ' + (err && err.message ? err.message : err));
             });
@@ -153,6 +160,10 @@
             if (currentSubscription) {
                 currentSubscription.unsubscribe();
                 currentSubscription = null;
+            }
+            if (gameStartedSubscription) {
+                gameStartedSubscription.unsubscribe();
+                gameStartedSubscription = null;
             }
             if (stompClient) {
                 stompClient.disconnect();

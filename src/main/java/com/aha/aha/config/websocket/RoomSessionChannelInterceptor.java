@@ -48,7 +48,8 @@ public class RoomSessionChannelInterceptor implements ChannelInterceptor {
         if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
             String destination = accessor.getDestination();
             if (destination != null && destination.startsWith(ROOM_TOPIC_PREFIX)) {
-                String subscribedRoomId = destination.substring(ROOM_TOPIC_PREFIX.length());
+                String afterPrefix = destination.substring(ROOM_TOPIC_PREFIX.length());
+                String subscribedRoomId = afterPrefix.contains("/") ? afterPrefix.substring(0, afterPrefix.indexOf('/')) : afterPrefix;
                 if (!session.getRoomId().equals(subscribedRoomId)) {
                     throw new IllegalArgumentException("Session does not match room subscription");
                 }

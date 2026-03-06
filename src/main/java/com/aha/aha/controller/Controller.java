@@ -85,7 +85,7 @@ public class Controller {
         if (!"HOST".equals(roomSession.getRole())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can start the quiz");
         }
+        
         roomService.startGame(roomSessionId);
     }
 }
-
