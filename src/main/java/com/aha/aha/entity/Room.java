@@ -20,7 +20,10 @@ public class Room {
 
     private List<String> questions; // Holds the Ids of the questions
 
+   private boolean gameStarted = false;
    
+    
+
     public Room() {
         this.players = new ArrayList<>();
         this.questions = new ArrayList<>();
@@ -106,6 +109,13 @@ public class Room {
         this.questions = questions;
     }
     
+    public boolean isGameStarted() {
+        return gameStarted;
+    }
+    
+       public void setGameStarted(boolean gameStarted) {
+        this.gameStarted = gameStarted;
+       }
     
     
 }

@@ -31,15 +31,16 @@ public class RoomService {
     private final UserService userService;
     private final QuestionRepository questionRepository;
     private final RoomSessionRepository roomSessionRepository;
-    
+    private final RoomEventService roomEventService;
 
     public RoomService(RoomRepository roomRepository, PasswordGenerator passwordGenerator, 
-        UserService userService, QuestionRepository questionRepository, RoomSessionRepository roomSessionRepository) {
+        UserService userService, QuestionRepository questionRepository, RoomSessionRepository roomSessionRepository, RoomEventService roomEventService) {
         this.roomRepository = roomRepository;
         this.passwordGenerator = passwordGenerator;
         this.userService = userService;
         this.questionRepository = questionRepository;
         this.roomSessionRepository = roomSessionRepository;
+        this.roomEventService = roomEventService;
     }
 
     public RoomResponse createRoom(String hostName, String topic, int maxPlayers, HttpServletResponse response) {
@@ -107,6 +108,9 @@ public class RoomService {
         //set the cookie
         setRoomSessionCookie(roomSession.getRoomSessionId(), response);
 
+        //broadcast the player joined event
+        roomEventService.broadcastPlayerJoined(roomId, newPlayer.getName());
+
         return newPlayer;
     }
 
@@ -120,5 +124,18 @@ public class RoomService {
             room.getQuestions().add(newQuestion.getId());
         }
         roomRepository.save(room);
+    }
+
+    public void startGame(String roomSessionId) {
+        RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId).orElseThrow(() -> new RuntimeException("Room session not found"));
+        Room room = roomRepository.findById(roomSession.getRoomId()).orElseThrow(() -> new RuntimeException("Room not found"));
+        if (room.isGameStarted()) {
+            throw new RuntimeException("Game already started");
+        }
+        room.setGameStarted(true);
+        roomRepository.save(room);
+
+        //broadcast the game started event
+        roomEventService.broadcastGameStarted(roomSession.getRoomId(), "Game started");
     }
 }

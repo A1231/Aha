@@ -9,7 +9,6 @@ import com.aha.aha.entity.RoomSession;
 import com.aha.aha.entity.User;
 import com.aha.aha.repository.RoomSessionRepository;
 import com.aha.aha.request.JoinRoomRequest;
-import com.aha.aha.request.QuestionRequest;
 import com.aha.aha.request.QuestionSetRequest;
 import com.aha.aha.request.RoomRequest;
 import com.aha.aha.response.RoomResponse;
@@ -24,10 +23,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
-import java.util.Map;
 
 
 @Tag(name="Room REST API Endpoints", description = "Operations related to info about rooms")
@@ -80,5 +77,15 @@ public class Controller {
         roomService.addQuestionsToRoom(questionSetRequest.getQuestions());
     }
     
+    @Operation(summary = "Start the game", description = "Start the game for the given room id")
+    @ResponseStatus(HttpStatus.OK)
+    @PostMapping("/api/rooms/start")
+    public void startQuiz(@CookieValue("ROOM_SESSION") String roomSessionId) {
+        RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId).orElseThrow(() -> new RuntimeException("Room session not found"));
+        if (!"HOST".equals(roomSession.getRole())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can start the quiz");
+        }
+        roomService.startGame(roomSessionId);
+    }
 }
 
