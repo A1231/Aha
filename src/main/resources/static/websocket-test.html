@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Test – Aha</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+        h1 { font-size: 1.35rem; margin-bottom: 0.25rem; }
+        h2 { font-size: 1rem; margin: 1.25rem 0 0.5rem; color: #333; }
+        .hint { font-size: 0.85rem; color: #555; margin-bottom: 0.75rem; }
+        #log { background: #1a1a1a; color: #eee; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 12px; max-height: 280px; overflow-y: auto; white-space: pre-wrap; margin-top: 1rem; }
+        .status { margin: 0.5rem 0; padding: 0.35rem 0.5rem; border-radius: 6px; font-weight: 500; }
+        .status.connected { background: #0a5; color: #000; }
+        .status.disconnected { background: #c33; color: #fff; }
+        .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+        input, button { padding: 0.5rem 0.6rem; font-size: 14px; }
+        input[type="text"], input[type="number"] { min-width: 120px; }
+        button { cursor: pointer; border-radius: 6px; border: 1px solid #ccc; background: #f5f5f5; }
+        button:hover { background: #e8e8e8; }
+        button.primary { background: #2a7; color: #fff; border-color: #2a7; }
+        button.primary:hover { background: #259; }
+        .created-info { background: #e8f5e9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .created-info strong { display: inline-block; margin-right: 0.5rem; }
+        .error { color: #c00; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <h1>WebSocket &amp; room test</h1>
+    <p class="hint">Same origin required so the <code>ROOM_SESSION</code> cookie is sent with the WebSocket handshake. Quick flow: <strong>1. Create room</strong> (host auto-connects and subscribes) → <strong>2. Join as player</strong> (you’ll see the broadcast in the log).</p>
+
+    <div id="status" class="status disconnected">Disconnected</div>
+
+    <h2>1. Create room</h2>
+    <div class="row">
+        <input type="text" id="hostName" placeholder="Host name" value="Host" />
+        <input type="text" id="topic" placeholder="Topic" value="General" />
+        <input type="number" id="maxPlayers" placeholder="Max players" value="5" min="2" max="10" />
+        <button id="createRoom" class="primary">Create room</button>
+    </div>
+    <div id="createResult" class="created-info" style="display: none;"></div>
+    <div id="createError" class="error" style="display: none;"></div>
+
+    <h2>2. WebSocket</h2>
+    <div class="row">
+        <input type="text" id="roomId" placeholder="Room ID" />
+        <button id="connect" class="primary">Connect &amp; subscribe to room</button>
+        <button id="disconnect">Disconnect</button>
+    </div>
+    <div class="row">
+        <input type="text" id="message" placeholder="Echo message" value="Hello" />
+        <button id="send">Send to /app/test</button>
+    </div>
+
+    <h2>3. Join room (simulate player)</h2>
+    <p class="hint">Calls REST join; if you’re already subscribed in step 2, you’ll see “Player joined: …” in the log.</p>
+    <div class="row">
+        <input type="text" id="joinRoomId" placeholder="Room ID" />
+        <input type="text" id="password" placeholder="Password" />
+        <input type="text" id="playerName" placeholder="Player name" value="Player1" />
+        <button id="joinRoom" class="primary">Join room</button>
+    </div>
+    <div id="joinError" class="error" style="display: none;"></div>
+
+    <div id="log"></div>
+
+    <script>
+        const baseUrl = window.location.origin;
+        const statusEl = document.getElementById('status');
+        const logEl = document.getElementById('log');
+        const messageEl = document.getElementById('message');
+        const roomIdEl = document.getElementById('roomId');
+        const createResultEl = document.getElementById('createResult');
+        const createErrorEl = document.getElementById('createError');
+        const joinErrorEl = document.getElementById('joinError');
+        let stompClient = null;
+        let currentSubscription = null;
+
+        function log(msg) {
+            const time = new Date().toLocaleTimeString();
+            logEl.textContent = `[${time}] ${msg}\n` + logEl.textContent;
+        }
+
+        function setConnected(connected) {
+            statusEl.textContent = connected ? 'Connected' : 'Disconnected';
+            statusEl.className = 'status ' + (connected ? 'connected' : 'disconnected');
+        }
+
+        function fillRoomAndPassword(roomId, password) {
+            document.getElementById('roomId').value = roomId || '';
+            document.getElementById('joinRoomId').value = roomId || '';
+            document.getElementById('password').value = password || '';
+        }
+
+        // —— Create room ——
+        document.getElementById('createRoom').onclick = async function () {
+            createErrorEl.style.display = 'none';
+            createResultEl.style.display = 'none';
+            const hostName = document.getElementById('hostName').value.trim() || 'Host';
+            const topic = document.getElementById('topic').value.trim() || 'General';
+            const maxPlayers = parseInt(document.getElementById('maxPlayers').value, 10) || 5;
+            try {
+                const res = await fetch(baseUrl + '/api/rooms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ hostName, topic, maxPlayers })
+                });
+                if (!res.ok) {
+                    const err = await res.text();
+                    throw new Error(err || res.statusText);
+                }
+                const data = await res.json();
+                createResultEl.style.display = 'block';
+                createResultEl.innerHTML = '<strong>Room created.</strong> roomId: <code>' + data.roomId + '</code> · password: <code>' + data.password + '</code>';
+                fillRoomAndPassword(data.roomId, data.password);
+                log('Room created: ' + data.roomId + ' (password set in form)');
+                // Host also connects and subscribes to the room so they receive broadcasts
+                connect();
+            } catch (e) {
+                createErrorEl.textContent = e.message || 'Create room failed';
+                createErrorEl.style.display = 'block';
+                log('Create room error: ' + (e.message || e));
+            }
+        };
+
+        // —— Connect & subscribe ——
+        function connect() {
+            const roomId = (roomIdEl.value || '').trim();
+            if (!roomId) {
+                log('Enter a room ID (or create a room first).');
+                return;
+            }
+            const socket = new SockJS(baseUrl + '/ws-aha');
+            stompClient = Stomp.over(socket);
+            stompClient.debug = null;
+            stompClient.connect({}, function () {
+                setConnected(true);
+                const topic = '/topic/room/' + roomId;
+                if (currentSubscription) currentSubscription.unsubscribe();
+                currentSubscription = stompClient.subscribe(topic, function (payload) {
+                    const body = JSON.parse(payload.body);
+                    log('Room update: ' + body.message + ' (roomId: ' + body.roomId + ')');
+                });
+                log('Subscribed to ' + topic + '. Join as player (step 3) to see the broadcast.');
+            }, function (err) {
+                log('Connection error: ' + (err && err.message ? err.message : err));
+            });
+        }
+
+        function disconnect() {
+            if (currentSubscription) {
+                currentSubscription.unsubscribe();
+                currentSubscription = null;
+            }
+            if (stompClient) {
+                stompClient.disconnect();
+                stompClient = null;
+            }
+            setConnected(false);
+            log('Disconnected');
+        }
+
+        document.getElementById('connect').onclick = connect;
+        document.getElementById('disconnect').onclick = disconnect;
+
+        // —— Send test message ——
+        function sendMessage() {
+            if (!stompClient || !stompClient.connected) {
+                log('Not connected. Connect first.');
+                return;
+            }
+            const msg = messageEl.value.trim() || 'Hello';
+            stompClient.send('/app/test', {}, JSON.stringify({ message: msg }));
+            log('Sent: ' + msg);
+        }
+        document.getElementById('send').onclick = sendMessage;
+
+        // —— Join room (REST) ——
+        document.getElementById('joinRoom').onclick = async function () {
+            joinErrorEl.style.display = 'none';
+            const roomId = document.getElementById('joinRoomId').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const playerName = document.getElementById('playerName').value.trim() || 'Player1';
+            if (!roomId || !password) {
+                joinErrorEl.textContent = 'Room ID and password required';
+                joinErrorEl.style.display = 'block';
+                return;
+            }
+            try {
+                const res = await fetch(baseUrl + '/api/rooms/join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ roomId, password, playerName })
+                });
+                if (!res.ok) {
+                    const err = await res.text();
+                    throw new Error(err || res.statusText);
+                }
+                log('Joined room as "' + playerName + '" — check for "Player joined" above if already subscribed.');
+            } catch (e) {
+                joinErrorEl.textContent = e.message || 'Join failed';
+                joinErrorEl.style.display = 'block';
+                log('Join error: ' + (e.message || e));
+            }
+        };
+    </script>
+</body>
+</html>
