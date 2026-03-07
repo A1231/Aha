@@ -16,6 +16,7 @@ import com.aha.aha.repository.RoomRepository;
 import com.aha.aha.repository.RoomSessionRepository;
 import com.aha.aha.request.QuestionRequest;
 import com.aha.aha.response.RoomResponse;
+import com.aha.aha.service.websocket.RoomEventService;
 import com.aha.aha.utility.PasswordGenerator;
 
 import jakarta.servlet.http.Cookie;
@@ -114,9 +115,8 @@ public class RoomService {
         return newPlayer;
     }
 
-    public void addQuestionsToRoom(List<QuestionRequest> questions) {
-        Room room = roomRepository.findById(questions.get(0).getRoomId()).orElseThrow(() -> new RuntimeException("Room not found"));
-        
+    public void addQuestionsToRoom(List<QuestionRequest> questions, Room room) {
+        //Room room = roomRepository.findById(questions.get(0).getRoomId()).orElseThrow(() -> new RuntimeException("Room not found"));
         for (QuestionRequest question : questions) {
             String questionId = String.valueOf(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
             Question newQuestion = new Question(questionId, question.getText(), question.getOptions(), question.getCorrectOptionIndex());
@@ -136,6 +136,6 @@ public class RoomService {
         roomRepository.save(room);
 
         //broadcast the game started event
-        roomEventService.broadcastGameStarted(roomSession.getRoomId(), "Game started");
+        roomEventService.broadcastGameStarted(roomSession.getRoomId(), "Game started", room.getQuestions().size());
     }
 }

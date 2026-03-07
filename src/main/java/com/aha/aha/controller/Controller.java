@@ -5,8 +5,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.aha.aha.entity.Room;
 import com.aha.aha.entity.RoomSession;
 import com.aha.aha.entity.User;
+import com.aha.aha.repository.RoomRepository;
 import com.aha.aha.repository.RoomSessionRepository;
 import com.aha.aha.request.JoinRoomRequest;
 import com.aha.aha.request.QuestionSetRequest;
@@ -34,10 +36,12 @@ public class Controller {
     
     private final RoomService roomService;
     private final RoomSessionRepository roomSessionRepository;
+    private final RoomRepository roomRepository;
 
-    public Controller(RoomService roomService, RoomSessionRepository roomSessionRepository) {
+    public Controller(RoomService roomService, RoomSessionRepository roomSessionRepository, RoomRepository roomRepository) {
         this.roomService = roomService;
         this.roomSessionRepository = roomSessionRepository;
+        this.roomRepository = roomRepository;
     }
 
 
@@ -71,10 +75,11 @@ public class Controller {
     @PostMapping("/api/rooms/questions")
     public void addQuestionsToRoom(@CookieValue("ROOM_SESSION") String roomSessionId, @RequestBody @Valid QuestionSetRequest questionSetRequest) {
         RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId).orElseThrow(() -> new RuntimeException("Room session not found"));
+        Room room = roomRepository.findById(roomSession.getRoomId()).orElseThrow(() -> new RuntimeException("Room not found"));
         if (!"HOST".equals(roomSession.getRole())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can add questions");
         }
-        roomService.addQuestionsToRoom(questionSetRequest.getQuestions());
+        roomService.addQuestionsToRoom(questionSetRequest.getQuestions(), room);
     }
     
     @Operation(summary = "Start the game", description = "Start the game for the given room id")

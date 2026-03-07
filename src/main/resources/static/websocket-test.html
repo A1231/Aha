@@ -24,6 +24,13 @@
         .created-info { background: #e8f5e9; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.9rem; margin-bottom: 0.5rem; }
         .created-info strong { display: inline-block; margin-right: 0.5rem; }
         .error { color: #c00; font-size: 0.9rem; }
+        #questionPanel { display: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+        #questionPanel.active { display: block; }
+        #questionPanel .question-text { font-weight: 600; font-size: 1.05rem; margin-bottom: 0.75rem; color: #212529; }
+        #questionPanel .options { display: flex; flex-direction: column; gap: 0.5rem; }
+        #questionPanel .option-btn { text-align: left; padding: 0.6rem 1rem; border: 2px solid #dee2e6; border-radius: 6px; background: #fff; cursor: pointer; font-size: 14px; transition: border-color 0.15s, background 0.15s; }
+        #questionPanel .option-btn:hover { border-color: #2a7; background: #f0fff4; }
+        #questionPanel .option-btn.selected { border-color: #2a7; background: #e8f5e9; }
     </style>
 </head>
 <body>
@@ -63,6 +70,12 @@
     </div>
     <div id="joinError" class="error" style="display: none;"></div>
 
+    <h2>4. Current question</h2>
+    <div id="questionPanel">
+        <div class="question-text" id="questionText">—</div>
+        <div class="options" id="questionOptions"></div>
+    </div>
+
     <div id="log"></div>
 
     <script>
@@ -77,6 +90,7 @@
         let stompClient = null;
         let currentSubscription = null;
         let gameStartedSubscription = null;
+        let questionSubscription = null;
 
         function log(msg) {
             const time = new Date().toLocaleTimeString();
@@ -92,6 +106,29 @@
             document.getElementById('roomId').value = roomId || '';
             document.getElementById('joinRoomId').value = roomId || '';
             document.getElementById('password').value = password || '';
+        }
+
+        function showQuestion(question) {
+            const panel = document.getElementById('questionPanel');
+            const textEl = document.getElementById('questionText');
+            const optionsEl = document.getElementById('questionOptions');
+            textEl.textContent = question.questionText || '—';
+            optionsEl.innerHTML = '';
+            const options = question.options || [];
+            options.forEach(function (opt, idx) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.dataset.index = idx;
+                btn.onclick = function () {
+                    document.querySelectorAll('#questionPanel .option-btn').forEach(function (b) { b.classList.remove('selected'); });
+                    btn.classList.add('selected');
+                    log('Selected option ' + (idx + 1) + ': ' + opt);
+                };
+                optionsEl.appendChild(btn);
+            });
+            panel.classList.add('active');
         }
 
         // —— Create room ——
@@ -150,7 +187,14 @@
                     const body = JSON.parse(payload.body);
                     log('Game started: ' + body.message + ' (roomId: ' + body.roomId + ')');
                 });
-                log('Subscribed to ' + topic + ' and ' + gameStartedTopic + '. Join as player (step 3) to see the broadcast.');
+                const questionTopic = '/topic/room/' + roomId + '/question';
+                if (questionSubscription) questionSubscription.unsubscribe();
+                questionSubscription = stompClient.subscribe(questionTopic, function (payload) {
+                    const body = JSON.parse(payload.body);
+                    log('Question: ' + (body.questionText || body.questionId) + ' (id: ' + body.questionId + ', options: ' + (body.options ? body.options.length : 0) + ')');
+                    showQuestion(body);
+                });
+                log('Subscribed to ' + topic + ', ' + gameStartedTopic + ', and ' + questionTopic + '. Join as player (step 3) to see the broadcast.');
             }, function (err) {
                 log('Connection error: ' + (err && err.message ? err.message : err));
             });
@@ -164,6 +208,10 @@
             if (gameStartedSubscription) {
                 gameStartedSubscription.unsubscribe();
                 gameStartedSubscription = null;
+            }
+            if (questionSubscription) {
+                questionSubscription.unsubscribe();
+                questionSubscription = null;
             }
             if (stompClient) {
                 stompClient.disconnect();

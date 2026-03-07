@@ -1,4 +1,4 @@
-package com.aha.aha.service;
+package com.aha.aha.service.websocket;
 
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -11,9 +11,11 @@ import com.aha.aha.response.websocket.RoomUpdate;
 public class RoomEventService {
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final GameScheduler gameScheduler;
 
-    public RoomEventService(SimpMessagingTemplate messagingTemplate) {
+    public RoomEventService(SimpMessagingTemplate messagingTemplate, GameScheduler gameScheduler) {
         this.messagingTemplate = messagingTemplate;
+        this.gameScheduler = gameScheduler;
     }
 
     public void broadcastPlayerJoined(String roomId, String playerName) {
@@ -21,14 +23,12 @@ public class RoomEventService {
         messagingTemplate.convertAndSend("/topic/room/" + roomId, update);
     }
     
-    public void broadcastGameStarted(String roomId, String message) {
+    public void broadcastGameStarted(String roomId, String message, int totalQuestions) {
         RoomUpdate update = new RoomUpdate(roomId, message);
         messagingTemplate.convertAndSend("/topic/room/" + roomId + "/game-started", update);
+
+        gameScheduler.scheduleNextQuestion(roomId, 0, 60, totalQuestions);
     }
 
-    public void broadcastQuestion(String roomId, Question question) {
-        QuestionResponse questionResponse = new QuestionResponse(question.getId(), question.getText(), question.getOptions());
-        messagingTemplate.convertAndSend("/topic/room/" + roomId+"/question", questionResponse);
-
-    }
+   
 }
