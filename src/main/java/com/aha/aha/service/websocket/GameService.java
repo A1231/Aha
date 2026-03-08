@@ -1,8 +1,13 @@
 package com.aha.aha.service.websocket;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +20,7 @@ import com.aha.aha.repository.RoomRepository;
 import com.aha.aha.repository.RoomSessionRepository;
 import com.aha.aha.repository.UserRepository;
 import com.aha.aha.request.AnswerRequest;
+import com.aha.aha.response.websocket.LeaderboardResponse;
 import com.aha.aha.response.websocket.QuestionResponse;
 
 @Service
@@ -26,17 +32,18 @@ public class GameService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
-
+    private final RedisTemplate<String, String> redisTemplate;
    
     // roomSessionId -> answerRequest (roomSessionId matches WebSocket principal for convertAndSendToUser)
     private final Map<String, AnswerRequest> pendingAnswers = new ConcurrentHashMap<>();
 
-    public GameService(QuestionRepository questionRepository,RoomSessionRepository roomSessionRepository, RoomRepository roomRepository, UserRepository userRepository, SimpMessagingTemplate messagingTemplate) {
+    public GameService(QuestionRepository questionRepository,RoomSessionRepository roomSessionRepository, RoomRepository roomRepository, UserRepository userRepository, SimpMessagingTemplate messagingTemplate, RedisTemplate<String, String> redisTemplate) {
         this.questionRepository = questionRepository;
         this.roomSessionRepository = roomSessionRepository;
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
+        this.redisTemplate = redisTemplate;
     }
 
     public void broadcastQuestion(String roomId, int questionIndex) {
@@ -86,6 +93,10 @@ public class GameService {
             if (answerRequest.getAnswerIndex() != question.getCorrectOptionIndex()) {
                 System.out.println("INCORRECT");
                 messagingTemplate.convertAndSendToUser(roomSessionId, "/queue/room/" + roomId + "/answer", "INCORRECT");
+
+                // update the leaderboard
+                redisTemplate.opsForZSet().incrementScore("room:" + roomId + ":leaderboard", user.getId(), 0);
+                
             } else {
                 System.out.println("CORRECT");
                 System.out.println("User previous score: " + user.getScore());
@@ -93,6 +104,22 @@ public class GameService {
                 System.out.println("User new score: " + user.getScore());
                 userRepository.save(user);
                 messagingTemplate.convertAndSendToUser(roomSessionId, "/queue/room/" + roomId + "/answer", "CORRECT");
+
+                // update the leaderboard
+                redisTemplate.opsForZSet().incrementScore("room:" + roomId + ":leaderboard", user.getId(), 10);
+
+                // get the leaderboard
+                Set<ZSetOperations.TypedTuple<String>> leaderboard = redisTemplate.opsForZSet().reverseRangeWithScores("room:" + roomId + ":leaderboard", 0, -1);
+                List<LeaderboardResponse> leaderboardResponses = new ArrayList<>();
+                for (ZSetOperations.TypedTuple<String> tuple : leaderboard) {
+                    String playerId = tuple.getValue();
+                    User player = userRepository.findById(playerId).orElseThrow(() -> new RuntimeException("User not found"));
+                    int score = tuple.getScore().intValue();
+                    leaderboardResponses.add(new LeaderboardResponse(player.getId(), player.getName(), score));
+                }
+
+                // broadcast the leaderboard
+                messagingTemplate.convertAndSend("/topic/room/" + roomId + "/leaderboard", leaderboardResponses);
             }
             pendingAnswers.remove(roomSessionId);
         }

@@ -12,6 +12,8 @@ import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
  * so that SimpUserRegistry can resolve it for convertAndSendToUser().
  * The ROOM_SESSION attribute is placed into the attributes map by
  * RoomSessionHandshakeInterceptor (which runs before this handler).
+ * RoomSessionHandshakeHandler is called during the WebSocket handshake phase, specifically after the handshake interceptors run but before the WebSocket session is fully established.
+ * 
  */
 public class RoomSessionHandshakeHandler extends DefaultHandshakeHandler {
 

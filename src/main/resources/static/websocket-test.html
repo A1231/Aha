@@ -6,7 +6,19 @@
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <style>
-        body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+        body { font-family: system-ui, sans-serif; margin: 0; padding: 0; }
+        .page-layout { display: flex; min-height: 100vh; }
+        .main-content { flex: 1; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+        .leaderboard-sidebar { width: 260px; background: #1a1a2e; color: #eee; padding: 1.5rem 1rem; border-left: 1px solid #2a2a4a; position: sticky; top: 0; height: 100vh; box-sizing: border-box; overflow-y: auto; }
+        .leaderboard-sidebar h2 { font-size: 1rem; color: #a0a0d0; margin: 0 0 1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .leaderboard-empty { font-size: 0.85rem; color: #666; font-style: italic; }
+        .lb-entry { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.6rem; border-radius: 6px; margin-bottom: 0.4rem; background: #2a2a4a; transition: background 0.2s; }
+        .lb-rank { font-weight: 700; font-size: 0.95rem; min-width: 1.5rem; text-align: center; color: #a0a0d0; }
+        .lb-rank.gold { color: #ffd700; }
+        .lb-rank.silver { color: #c0c0c0; }
+        .lb-rank.bronze { color: #cd7f32; }
+        .lb-name { flex: 1; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lb-score { font-weight: 600; font-size: 0.9rem; color: #7ec8e3; }
         h1 { font-size: 1.35rem; margin-bottom: 0.25rem; }
         h2 { font-size: 1rem; margin: 1.25rem 0 0.5rem; color: #333; }
         .hint { font-size: 0.85rem; color: #555; margin-bottom: 0.75rem; }
@@ -34,6 +46,8 @@
     </style>
 </head>
 <body>
+<div class="page-layout">
+<div class="main-content">
     <h1>WebSocket &amp; room test</h1>
     <p class="hint">Same origin required so the <code>ROOM_SESSION</code> cookie is sent with the WebSocket handshake. Quick flow: <strong>1. Create room</strong> (host auto-connects and subscribes) → <strong>2. Join as player</strong> (you’ll see the broadcast in the log).</p>
 
@@ -77,6 +91,13 @@
     </div>
 
     <div id="log"></div>
+</div>
+
+<aside class="leaderboard-sidebar">
+    <h2>Leaderboard</h2>
+    <div id="leaderboardList"><span class="leaderboard-empty">Waiting for scores…</span></div>
+</aside>
+</div>
 
     <script>
         const baseUrl = window.location.origin;
@@ -93,6 +114,7 @@
         let questionSubscription = null;
         let gameEndedSubscription = null;
         let answerSubscription = null;
+        let leaderboardSubscription = null;
         let currentQuestionIndex = -1;
 
         function log(msg) {
@@ -103,6 +125,25 @@
         function setConnected(connected) {
             statusEl.textContent = connected ? 'Connected' : 'Disconnected';
             statusEl.className = 'status ' + (connected ? 'connected' : 'disconnected');
+        }
+
+        function renderLeaderboard(entries) {
+            const list = document.getElementById('leaderboardList');
+            if (!entries || entries.length === 0) {
+                list.innerHTML = '<span class="leaderboard-empty">No scores yet</span>';
+                return;
+            }
+            list.innerHTML = '';
+            entries.forEach(function (e, i) {
+                var div = document.createElement('div');
+                div.className = 'lb-entry';
+                var rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+                div.innerHTML =
+                    '<span class="lb-rank ' + rankClass + '">' + (i + 1) + '</span>' +
+                    '<span class="lb-name">' + (e.playerName || e.playerId) + '</span>' +
+                    '<span class="lb-score">' + e.score + '</span>';
+                list.appendChild(div);
+            });
         }
 
         function fillRoomAndPassword(roomId, password) {
@@ -215,7 +256,14 @@
                     const body = typeof payload.body === 'string' && payload.body.startsWith('{') ? JSON.parse(payload.body) : payload.body;
                     log('Answer result: ' + (typeof body === 'string' ? body : (body.result || JSON.stringify(body))));
                 });
-                log('Subscribed to ' + topic + ', ' + gameStartedTopic + ', ' + questionTopic + ', ' + gameEndedTopic + ', and ' + answerQueue + '. Join as player (step 3) to see the broadcast.');
+                const leaderboardTopic = '/topic/room/' + roomId + '/leaderboard';
+                if (leaderboardSubscription) leaderboardSubscription.unsubscribe();
+                leaderboardSubscription = stompClient.subscribe(leaderboardTopic, function (payload) {
+                    const entries = JSON.parse(payload.body);
+                    renderLeaderboard(entries);
+                    log('Leaderboard updated (' + entries.length + ' players)');
+                });
+                log('Subscribed to ' + topic + ', ' + gameStartedTopic + ', ' + questionTopic + ', ' + gameEndedTopic + ', ' + answerQueue + ', and ' + leaderboardTopic + '.');
             }, function (err) {
                 log('Connection error: ' + (err && err.message ? err.message : err));
             });
@@ -242,6 +290,11 @@
                 answerSubscription.unsubscribe();
                 answerSubscription = null;
             }
+            if (leaderboardSubscription) {
+                leaderboardSubscription.unsubscribe();
+                leaderboardSubscription = null;
+            }
+            document.getElementById('leaderboardList').innerHTML = '<span class="leaderboard-empty">Waiting for scores…</span>';
             currentQuestionIndex = -1;
             if (stompClient) {
                 stompClient.disconnect();
