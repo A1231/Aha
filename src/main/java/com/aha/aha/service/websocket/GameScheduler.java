@@ -19,14 +19,27 @@ public class GameScheduler {
 
    
 
-    public void scheduleNextQuestion(String roomId, int nextQuestionIndex, long delaySeconds, int totalQuestions) {
-            
-        if (nextQuestionIndex >= totalQuestions) {
-            return; // stop recursion
-        }
+    public void scheduleNextQuestion(String roomId) {
+
+
+        scheduler.schedule(() -> {
+            int questionIndex = gameService.nextQuestionIndex(roomId);
+            if (questionIndex == -1) {
+                gameService.broadcastEndGame(roomId);
+                return;
+            }
+            gameService.broadcastQuestion(roomId, questionIndex);
+        
             scheduler.schedule(() -> {
-                gameService.broadcastQuestion(roomId, nextQuestionIndex);
-                scheduleNextQuestion(roomId, nextQuestionIndex+1, delaySeconds, totalQuestions);
-            }, delaySeconds, TimeUnit.SECONDS);
+                gameService.processAnswer(roomId); // first question answers processed
+        
+                // schedule next question 30s after processing
+                scheduler.schedule(() -> scheduleNextQuestion(roomId), 30, TimeUnit.SECONDS);
+        
+            }, 60, TimeUnit.SECONDS);
+        
+        }, 0, TimeUnit.SECONDS);
+
+
     }
 }

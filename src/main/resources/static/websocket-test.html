@@ -91,6 +91,9 @@
         let currentSubscription = null;
         let gameStartedSubscription = null;
         let questionSubscription = null;
+        let gameEndedSubscription = null;
+        let answerSubscription = null;
+        let currentQuestionIndex = -1;
 
         function log(msg) {
             const time = new Date().toLocaleTimeString();
@@ -109,12 +112,14 @@
         }
 
         function showQuestion(question) {
+            currentQuestionIndex = question.questionIndex !== undefined ? question.questionIndex : currentQuestionIndex + 1;
             const panel = document.getElementById('questionPanel');
             const textEl = document.getElementById('questionText');
             const optionsEl = document.getElementById('questionOptions');
             textEl.textContent = question.questionText || '—';
             optionsEl.innerHTML = '';
             const options = question.options || [];
+            const roomId = (roomIdEl.value || '').trim();
             options.forEach(function (opt, idx) {
                 const btn = document.createElement('button');
                 btn.type = 'button';
@@ -125,6 +130,10 @@
                     document.querySelectorAll('#questionPanel .option-btn').forEach(function (b) { b.classList.remove('selected'); });
                     btn.classList.add('selected');
                     log('Selected option ' + (idx + 1) + ': ' + opt);
+                    if (stompClient && stompClient.connected && roomId) {
+                        stompClient.send('/app/room/' + roomId + '/question', {}, JSON.stringify({ answerIndex: idx, questionIndex: currentQuestionIndex }));
+                        log('Sent answer: questionIndex=' + currentQuestionIndex + ', answerIndex=' + idx);
+                    }
                 };
                 optionsEl.appendChild(btn);
             });
@@ -194,7 +203,19 @@
                     log('Question: ' + (body.questionText || body.questionId) + ' (id: ' + body.questionId + ', options: ' + (body.options ? body.options.length : 0) + ')');
                     showQuestion(body);
                 });
-                log('Subscribed to ' + topic + ', ' + gameStartedTopic + ', and ' + questionTopic + '. Join as player (step 3) to see the broadcast.');
+                const gameEndedTopic = '/topic/room/' + roomId + '/game-ended';
+                if (gameEndedSubscription) gameEndedSubscription.unsubscribe();
+                gameEndedSubscription = stompClient.subscribe(gameEndedTopic, function (payload) {
+                    const body = typeof payload.body === 'string' && payload.body.startsWith('{') ? JSON.parse(payload.body) : payload.body;
+                    log('Game ended: ' + (typeof body === 'string' ? body : (body.message || JSON.stringify(body))));
+                });
+                const answerQueue = '/user/queue/room/' + roomId + '/answer';
+                if (answerSubscription) answerSubscription.unsubscribe();
+                answerSubscription = stompClient.subscribe(answerQueue, function (payload) {
+                    const body = typeof payload.body === 'string' && payload.body.startsWith('{') ? JSON.parse(payload.body) : payload.body;
+                    log('Answer result: ' + (typeof body === 'string' ? body : (body.result || JSON.stringify(body))));
+                });
+                log('Subscribed to ' + topic + ', ' + gameStartedTopic + ', ' + questionTopic + ', ' + gameEndedTopic + ', and ' + answerQueue + '. Join as player (step 3) to see the broadcast.');
             }, function (err) {
                 log('Connection error: ' + (err && err.message ? err.message : err));
             });
@@ -213,6 +234,15 @@
                 questionSubscription.unsubscribe();
                 questionSubscription = null;
             }
+            if (gameEndedSubscription) {
+                gameEndedSubscription.unsubscribe();
+                gameEndedSubscription = null;
+            }
+            if (answerSubscription) {
+                answerSubscription.unsubscribe();
+                answerSubscription = null;
+            }
+            currentQuestionIndex = -1;
             if (stompClient) {
                 stompClient.disconnect();
                 stompClient = null;

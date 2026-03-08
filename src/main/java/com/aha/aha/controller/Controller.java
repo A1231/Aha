@@ -93,4 +93,17 @@ public class Controller {
         
         roomService.startGame(roomSessionId);
     }
+
+    @Operation(summary = "End the game", description = "End the game for the given room id")
+    @ResponseStatus(HttpStatus.OK)
+    @PostMapping("/api/rooms/end")
+    public void endQuiz(@CookieValue("ROOM_SESSION") String roomSessionId) {
+        RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId)
+                .orElseThrow(() -> new RuntimeException("Room session not found"));
+        if (!"HOST".equals(roomSession.getRole())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can end the quiz");
+        }
+
+        roomService.endGame(roomSessionId);
+    }
 }

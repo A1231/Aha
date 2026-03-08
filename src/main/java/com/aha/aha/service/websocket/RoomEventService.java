@@ -23,11 +23,11 @@ public class RoomEventService {
         messagingTemplate.convertAndSend("/topic/room/" + roomId, update);
     }
     
-    public void broadcastGameStarted(String roomId, String message, int totalQuestions) {
+    public void broadcastGameStarted(String roomId, String message) {
         RoomUpdate update = new RoomUpdate(roomId, message);
         messagingTemplate.convertAndSend("/topic/room/" + roomId + "/game-started", update);
 
-        gameScheduler.scheduleNextQuestion(roomId, 0, 60, totalQuestions);
+        gameScheduler.scheduleNextQuestion(roomId);
     }
 
    

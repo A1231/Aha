@@ -71,6 +71,10 @@ public class RoomSessionChannelInterceptor implements ChannelInterceptor {
     }
 
     private String extractRoomId(String destination) {
-        return destination.substring(destination.lastIndexOf('/') + 1);
+        // /app/room/{roomId}/question
+        if (destination == null || !destination.startsWith("/app/room/")) return null;
+        String afterRoom = destination.substring("/app/room/".length());
+        int slash = afterRoom.indexOf('/');
+        return slash >= 0 ? afterRoom.substring(0, slash) : afterRoom;
     }
 }

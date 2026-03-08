@@ -22,16 +22,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic"); // for broadcasting events
+        config.enableSimpleBroker("/topic", "/queue"); // for broadcasting events
         config.setApplicationDestinationPrefixes("/app"); // client sends messages here
+        config.setUserDestinationPrefix("/user"); // user destination prefix
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws-aha") // websocket handshake endpoint
-                .setAllowedOriginPatterns("http://localhost:8080") // allow all origins
+        registry.addEndpoint("/ws-aha")
+                .setHandshakeHandler(new RoomSessionHandshakeHandler())
+                .setAllowedOriginPatterns("http://localhost:8080")
                 .addInterceptors(roomSessionHandshakeInterceptor)
-                .withSockJS(); // fallback for browsers without WS support
+                .withSockJS();
     }
 
     @Override

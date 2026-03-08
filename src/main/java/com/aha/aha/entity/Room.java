@@ -21,6 +21,7 @@ public class Room {
     private List<String> questions; // Holds the Ids of the questions
 
    private boolean gameStarted = false;
+   private int currentQuestionIndex = -1;
    
     
 
@@ -113,9 +114,17 @@ public class Room {
         return gameStarted;
     }
     
-       public void setGameStarted(boolean gameStarted) {
-        this.gameStarted = gameStarted;
-       }
+    public void setGameStarted(boolean gameStarted) {
+    this.gameStarted = gameStarted;
+    }
+
+    public int getCurrentQuestionIndex() {
+        return currentQuestionIndex;
+    }
+
+    public void setCurrentQuestionIndex(int currentQuestionIndex) {
+        this.currentQuestionIndex = currentQuestionIndex;
+    }
     
     
 }

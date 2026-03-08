@@ -16,6 +16,7 @@ import com.aha.aha.repository.RoomRepository;
 import com.aha.aha.repository.RoomSessionRepository;
 import com.aha.aha.request.QuestionRequest;
 import com.aha.aha.response.RoomResponse;
+import com.aha.aha.service.websocket.GameService;
 import com.aha.aha.service.websocket.RoomEventService;
 import com.aha.aha.utility.PasswordGenerator;
 
@@ -33,15 +34,18 @@ public class RoomService {
     private final QuestionRepository questionRepository;
     private final RoomSessionRepository roomSessionRepository;
     private final RoomEventService roomEventService;
+    private final GameService gameService;
 
     public RoomService(RoomRepository roomRepository, PasswordGenerator passwordGenerator, 
-        UserService userService, QuestionRepository questionRepository, RoomSessionRepository roomSessionRepository, RoomEventService roomEventService) {
+        UserService userService, QuestionRepository questionRepository, RoomSessionRepository roomSessionRepository,
+        RoomEventService roomEventService, GameService gameService) {
         this.roomRepository = roomRepository;
         this.passwordGenerator = passwordGenerator;
         this.userService = userService;
         this.questionRepository = questionRepository;
         this.roomSessionRepository = roomSessionRepository;
         this.roomEventService = roomEventService;
+        this.gameService = gameService;
     }
 
     public RoomResponse createRoom(String hostName, String topic, int maxPlayers, HttpServletResponse response) {
@@ -136,6 +140,12 @@ public class RoomService {
         roomRepository.save(room);
 
         //broadcast the game started event
-        roomEventService.broadcastGameStarted(roomSession.getRoomId(), "Game started", room.getQuestions().size());
+        roomEventService.broadcastGameStarted(roomSession.getRoomId(), "Game started");
+    }
+
+    public void endGame(String roomSessionId) {
+        RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId)
+                .orElseThrow(() -> new RuntimeException("Room session not found"));
+        gameService.broadcastEndGame(roomSession.getRoomId());
     }
 }
