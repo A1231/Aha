@@ -10,9 +10,7 @@ import jakarta.validation.constraints.Size;
 
 public class QuestionRequest {
 
-    @NotEmpty(message = "Room id is required")
-    private String roomId;
-
+  
     @NotEmpty(message = "Text is required")
     private String text;
 
@@ -25,16 +23,13 @@ public class QuestionRequest {
     @Max(value = 3, message = "Correct option index must be 3-based")
     private int correctOptionIndex; // 0-based
 
-    public QuestionRequest(String roomId, String text, List<String> options, int correctOptionIndex) {
-        this.roomId = roomId;
+    public QuestionRequest(String text, List<String> options, int correctOptionIndex) {
         this.text = text;
         this.options = options;
         this.correctOptionIndex = correctOptionIndex;
     }
 
     // getters & setters
-    public String getRoomId() { return roomId; }
-    public void setRoomId(String roomId) { this.roomId = roomId; }
 
     public String getText() { return text; }
     public void setText(String text) { this.text = text; }

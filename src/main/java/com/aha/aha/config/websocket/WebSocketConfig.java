@@ -31,7 +31,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws-aha")
                 .setHandshakeHandler(new RoomSessionHandshakeHandler())
-                .setAllowedOriginPatterns("http://localhost:8080")
+                .setAllowedOriginPatterns("http://localhost:5173", "http://localhost:8080")
                 .addInterceptors(roomSessionHandshakeInterceptor)
                 .withSockJS();
     }

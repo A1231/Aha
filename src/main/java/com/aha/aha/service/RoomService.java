@@ -120,7 +120,7 @@ public class RoomService {
     }
 
     public void addQuestionsToRoom(List<QuestionRequest> questions, Room room) {
-        //Room room = roomRepository.findById(questions.get(0).getRoomId()).orElseThrow(() -> new RuntimeException("Room not found"));
+        
         for (QuestionRequest question : questions) {
             String questionId = String.valueOf(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
             Question newQuestion = new Question(questionId, question.getText(), question.getOptions(), question.getCorrectOptionIndex());
