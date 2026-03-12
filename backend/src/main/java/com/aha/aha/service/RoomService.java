@@ -87,7 +87,7 @@ public class RoomService {
         Cookie cookie = new Cookie("ROOM_SESSION", roomSessionId);
         cookie.setHttpOnly(true);
         cookie.setPath("/");
-        cookie.setMaxAge(86400); // 1 day in seconds
+        cookie.setMaxAge(7200); // 2 hours in seconds
         response.addCookie(cookie);
     }   
 
