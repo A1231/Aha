@@ -3,7 +3,7 @@ package com.aha.aha.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -19,6 +19,10 @@ import com.aha.aha.response.RoomResponse;
 import com.aha.aha.service.websocket.GameService;
 import com.aha.aha.service.websocket.RoomEventService;
 import com.aha.aha.utility.PasswordGenerator;
+
+import com.aha.aha.exception.BadRequestException;
+import com.aha.aha.exception.ConflictException;
+import com.aha.aha.exception.ResourceNotFoundException;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -91,32 +95,32 @@ public class RoomService {
         return new RoomResponse(room.getRoomId(), room.getTopic(), room.getMaxPlayers(), room.getPassword(), room.getHostId());
     }
 
-    public User joinRoom(String roomId, String password, String playerName, HttpServletResponse response) {
-        Room room = roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Room not found"));
+    public RoomResponse joinRoom(String roomId, String password, String playerName, HttpServletResponse response) {
+        Room room = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room not found"));
         if (!room.getPassword().equals(password)) {
-            throw new RuntimeException("Invalid password");
+            throw new BadRequestException("Invalid password");
         }
 
         if (room.getPlayers() != null && room.getPlayers().size() >= room.getMaxPlayers()) {
-            throw new RuntimeException("Room is full");
+            throw new BadRequestException("Room is full");
         }
 
         //create player
         User newPlayer = userService.createUser(playerName, false, roomId);
         room.getPlayers().add(newPlayer.getId());
-        roomRepository.save(room);
+        Room savedRoom = roomRepository.save(room);
+        List<String> playerNames = savedRoom.getPlayers().stream()
+                .map(playerId -> userService.getUserById(playerId).getName())
+                .collect(Collectors.toList());
 
         //create room session
         RoomSession roomSession = createRoomSession(roomId, newPlayer.getId(), "PLAYER");
         setRoomSessionCookie(roomSession.getRoomSessionId(), response);
 
-        //set the cookie
-        setRoomSessionCookie(roomSession.getRoomSessionId(), response);
-
         //broadcast the player joined event
-        roomEventService.broadcastPlayerJoined(roomId, newPlayer.getName());
+        roomEventService.broadcastPlayerJoined(roomId, playerNames);
 
-        return newPlayer;
+        return convertToRoomResponse(savedRoom);
     }
 
     public void addQuestionsToRoom(List<QuestionRequest> questions, Room room) {
@@ -131,10 +135,10 @@ public class RoomService {
     }
 
     public void startGame(String roomSessionId) {
-        RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId).orElseThrow(() -> new RuntimeException("Room session not found"));
-        Room room = roomRepository.findById(roomSession.getRoomId()).orElseThrow(() -> new RuntimeException("Room not found"));
+        RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId).orElseThrow(() -> new ResourceNotFoundException("Room session not found"));
+        Room room = roomRepository.findById(roomSession.getRoomId()).orElseThrow(() -> new ResourceNotFoundException("Room not found"));
         if (room.isGameStarted()) {
-            throw new RuntimeException("Game already started");
+            throw new ConflictException("Game already started");
         }
         room.setGameStarted(true);
         roomRepository.save(room);
@@ -145,7 +149,7 @@ public class RoomService {
 
     public void endGame(String roomSessionId) {
         RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId)
-                .orElseThrow(() -> new RuntimeException("Room session not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Room session not found"));
         gameService.broadcastEndGame(roomSession.getRoomId());
     }
 }

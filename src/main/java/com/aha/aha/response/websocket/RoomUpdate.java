@@ -1,28 +1,19 @@
 package com.aha.aha.response.websocket;
 
+import java.util.List;
+
 public class RoomUpdate {
 
-    String roomId;
-    String message;
 
-    public RoomUpdate(String roomId, String message) {
-        this.roomId = roomId;
-        this.message = message;
-    }
+    List<String> players;
 
-    public String getRoomId() {
-        return roomId;
+    public RoomUpdate(List<String> players) {
+        this.players = players;
     }
-    
-    public String getMessage() {
-        return message;
+    public List<String> getPlayers() {
+        return players;
     }
-
-    public void setRoomId(String roomId) {
-        this.roomId = roomId;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
+    public void setPlayers(List<String> players) {
+        this.players = players;
     }
 }

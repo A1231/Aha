@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import com.aha.aha.entity.User;
+import com.aha.aha.exception.ResourceNotFoundException;
 import com.aha.aha.repository.UserRepository;
 
 @Service
@@ -14,6 +15,11 @@ public class UserService {
     
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
+    }
+
+    public User getUserById(String userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     public User createUser(String name, boolean isHost, String roomId) {

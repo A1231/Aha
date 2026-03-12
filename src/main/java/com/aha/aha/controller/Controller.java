@@ -7,7 +7,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.aha.aha.entity.Room;
 import com.aha.aha.entity.RoomSession;
-import com.aha.aha.entity.User;
+import com.aha.aha.exception.ForbiddenException;
+import com.aha.aha.exception.ResourceNotFoundException;
 import com.aha.aha.repository.RoomRepository;
 import com.aha.aha.repository.RoomSessionRepository;
 import com.aha.aha.request.JoinRoomRequest;
@@ -22,7 +23,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -64,20 +64,18 @@ public class Controller {
     @Operation(summary = "Join a room", description = "Join a room with the given room id and password")
     @ResponseStatus(HttpStatus.OK)
     @PostMapping("/api/rooms/join")
-    public void joinRoom(@RequestBody @Valid JoinRoomRequest joinRoomRequest, HttpServletResponse response) {
-        User newPlayer = roomService.joinRoom(joinRoomRequest.getRoomId(), joinRoomRequest.getPassword(), joinRoomRequest.getPlayerName(), response);
-
-        
+    public RoomResponse joinRoom(@RequestBody @Valid JoinRoomRequest joinRoomRequest, HttpServletResponse response) {
+        return roomService.joinRoom(joinRoomRequest.getRoomId(), joinRoomRequest.getPassword(), joinRoomRequest.getPlayerName(), response);
     }
 
     @Operation(summary = "Add questions to a room", description = "Add a question to a room with the given room id and question. Only the host can add questions.")
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/api/rooms/questions")
     public void addQuestionsToRoom(@CookieValue("ROOM_SESSION") String roomSessionId, @RequestBody @Valid QuestionSetRequest questionSetRequest) {
-        RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId).orElseThrow(() -> new RuntimeException("Room session not found"));
-        Room room = roomRepository.findById(roomSession.getRoomId()).orElseThrow(() -> new RuntimeException("Room not found"));
+        RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId).orElseThrow(() -> new ResourceNotFoundException("Room session not found"));
+        Room room = roomRepository.findById(roomSession.getRoomId()).orElseThrow(() -> new ResourceNotFoundException("Room not found"));
         if (!"HOST".equals(roomSession.getRole())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can add questions");
+            throw new ForbiddenException("Only the host can add questions");
         }
         roomService.addQuestionsToRoom(questionSetRequest.getQuestions(), room);
     }
@@ -86,9 +84,9 @@ public class Controller {
     @ResponseStatus(HttpStatus.OK)
     @PostMapping("/api/rooms/start")
     public void startQuiz(@CookieValue("ROOM_SESSION") String roomSessionId) {
-        RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId).orElseThrow(() -> new RuntimeException("Room session not found"));
+        RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId).orElseThrow(() -> new ResourceNotFoundException("Room session not found"));
         if (!"HOST".equals(roomSession.getRole())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can start the quiz");
+            throw new ForbiddenException("Only the host can start the quiz");
         }
         
         roomService.startGame(roomSessionId);
@@ -99,9 +97,9 @@ public class Controller {
     @PostMapping("/api/rooms/end")
     public void endQuiz(@CookieValue("ROOM_SESSION") String roomSessionId) {
         RoomSession roomSession = roomSessionRepository.findByRoomSessionId(roomSessionId)
-                .orElseThrow(() -> new RuntimeException("Room session not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Room session not found"));
         if (!"HOST".equals(roomSession.getRole())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can end the quiz");
+            throw new ForbiddenException("Only the host can end the quiz");
         }
 
         roomService.endGame(roomSessionId);

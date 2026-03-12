@@ -38,7 +38,7 @@ public class GameScheduler {
         
             }, 60, TimeUnit.SECONDS);
         
-        }, 0, TimeUnit.SECONDS);
+        }, 5, TimeUnit.SECONDS);
 
 
     }

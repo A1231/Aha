@@ -11,8 +11,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 import com.aha.aha.config.websocket.RoomSessionHandshakeInterceptor;
-import com.aha.aha.entity.RoomSession;
-import com.aha.aha.repository.RoomSessionRepository;
+import com.aha.aha.exception.ResourceNotFoundException;
 import com.aha.aha.request.AnswerRequest;
 import com.aha.aha.service.websocket.GameService;
 
@@ -32,7 +31,7 @@ public class RoomWebSocketController {
 
         String roomSessionId = (String) sessionAttributes.get(RoomSessionHandshakeInterceptor.ROOM_SESSION_ATTR);
         if (roomSessionId == null) {
-            throw new RuntimeException("Room session not found");
+            throw new ResourceNotFoundException("Room session not found");
         }
        
         gameService.submitAnswer( answerRequest, roomSessionId);
