@@ -77,7 +77,7 @@ public class RoomService {
 
     public RoomSession createRoomSession(String roomId, String userId, String role) {
         String roomSessionId = String.valueOf(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
-        Long timeToLive = 86400L; // 24 hours
+        Long timeToLive = 7200L; // 2 hours
         RoomSession roomSession = new RoomSession(roomSessionId, roomId, userId, role, timeToLive);
         roomSessionRepository.save(roomSession);
         return roomSession;
@@ -128,7 +128,7 @@ public class RoomService {
         for (QuestionRequest question : questions) {
             String questionId = String.valueOf(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
             Question newQuestion = new Question(questionId, question.getText(), question.getOptions(), question.getCorrectOptionIndex());
-            Question savedQuestion = questionRepository.save(newQuestion);
+            questionRepository.save(newQuestion);
             room.getQuestions().add(newQuestion.getId());
         }
         roomRepository.save(room);
