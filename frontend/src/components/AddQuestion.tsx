@@ -1,39 +1,92 @@
-
 import type { Question } from "../types/Question";
 
-function AddQuestion({ question, index, setQuestions, questions }: { question: Question, index: number, setQuestions: (questions: Question[]) => void, questions: Question[] }) {
-
+function AddQuestion({
+    question,
+    index,
+    setQuestions,
+    questions,
+}: {
+    question: Question;
+    index: number;
+    setQuestions: (questions: Question[]) => void;
+    questions: Question[];
+}) {
     return (
+        <div className="question-builder">
+            <span className="question-builder__number">Question {index + 1}</span>
 
-        <div className="question-container">
+            <div className="form-group">
+                <label htmlFor={`question-${index}`}>Question</label>
+                <input
+                    type="text"
+                    id={`question-${index}`}
+                    placeholder="Enter your question"
+                    value={question.text}
+                    onChange={(e) =>
+                        setQuestions(
+                            questions.map((q, i) =>
+                                i === index ? { ...q, text: e.target.value } : q
+                            )
+                        )
+                    }
+                    required
+                />
+            </div>
 
-            <label htmlFor="question">Question</label>
-            <input type="text" id="question" name="question" value={question.text} 
-            onChange={(e) => 
-            setQuestions(questions.map((question, i) => i === index ? { ...question, text: e.target.value } : question))} 
-            required />
-            <label htmlFor="options">Options</label>
-            {Array.from({length: 4}, (_, idx) => (
-                <div key={idx}>
-
-                <label htmlFor={`option${idx + 1}`}>Option {idx + 1}</label>
-                <input  type="text" id={`option${idx + 1}`} name={`option${idx + 1}`} value={question.options[idx]} 
-                onChange={(e) => 
-                setQuestions(questions.map((question, i) => i === index ? { ...question, options: question.options.map((option, j) => j === idx ? e.target.value : option) } : question))} required />
-                </div>
-            ))}
-            <label htmlFor="correctOption">Correct Option</label>
-            <select id="correctOption" name="correctOption" value={question.correctOptionIndex} 
-            onChange={(e) => setQuestions(questions.map((question, i) => i === index ? { ...question, correctOptionIndex: parseInt(e.target.value) } : question))} required>
-                {Array.from({length: 4}, (_, index) => (
-                    <option key={index} value={index}>Option {index + 1}</option>
+            <div className="question-builder__options">
+                {Array.from({ length: 4 }, (_, idx) => (
+                    <div className="form-group" key={idx}>
+                        <label htmlFor={`q${index}-option${idx + 1}`}>Option {idx + 1}</label>
+                        <input
+                            type="text"
+                            id={`q${index}-option${idx + 1}`}
+                            placeholder={`Option ${idx + 1}`}
+                            value={question.options[idx]}
+                            onChange={(e) =>
+                                setQuestions(
+                                    questions.map((q, i) =>
+                                        i === index
+                                            ? {
+                                                  ...q,
+                                                  options: q.options.map((opt, j) =>
+                                                      j === idx ? e.target.value : opt
+                                                  ),
+                                              }
+                                            : q
+                                    )
+                                )
+                            }
+                            required
+                        />
+                    </div>
                 ))}
-            </select>
-        </div>
-    )
-    
+            </div>
 
-   
+            <div className="form-group mt-2">
+                <label htmlFor={`q${index}-correct`}>Correct Option</label>
+                <select
+                    id={`q${index}-correct`}
+                    value={question.correctOptionIndex}
+                    onChange={(e) =>
+                        setQuestions(
+                            questions.map((q, i) =>
+                                i === index
+                                    ? { ...q, correctOptionIndex: parseInt(e.target.value) }
+                                    : q
+                            )
+                        )
+                    }
+                    required
+                >
+                    {Array.from({ length: 4 }, (_, i) => (
+                        <option key={i} value={i}>
+                            Option {i + 1}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        </div>
+    );
 }
 
 export default AddQuestion;

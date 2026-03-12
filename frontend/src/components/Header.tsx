@@ -1,9 +1,9 @@
 export default function Header() {
     return (
-        <header>
-            <h1>Aha! - Real-time Quiz Application</h1>
-
-
+        <header className="header">
+            <h1 className="header__title">
+                <span>Aha!</span> Play. Think. Win. In Real-Time.
+            </h1>
         </header>
-    )
+    );
 }

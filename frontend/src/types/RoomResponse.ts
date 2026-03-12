@@ -4,5 +4,5 @@ export interface RoomResponse {
     topic: string;
     maxPlayers: number;
     password: string;
-    hostId: string; 
+    userId: string; 
 }
