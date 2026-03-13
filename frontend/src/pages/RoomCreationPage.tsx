@@ -22,7 +22,7 @@ function RoomCreationPage() {
     const handleStartGame = async () => {
         setError(null);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/rooms/start`, { method: "POST" });
+            const response = await fetch(`${API_BASE_URL}/api/rooms/start`, { method: "POST", credentials: "include" });
             if (!response.ok) {
                 const data = await response.json().catch(() => null);
                 setError(data?.message ?? "Failed to start game");

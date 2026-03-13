@@ -24,6 +24,7 @@ export default function JoinRoomForm({ setRoom }: { setRoom: (room: RoomResponse
                 method: "POST",
                 body: JSON.stringify({ roomId, password, playerName }),
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
             });
             if (!response.ok) {
                 const data = await response.json().catch(() => null);

@@ -26,6 +26,7 @@ function RoomCreateForm({ setRoom }: { setRoom: (room: RoomResponse) => void }) 
                 method: "POST",
                 body: JSON.stringify(room),
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
             });
             if (!response.ok) {
                 const data = await response.json().catch(() => null);
