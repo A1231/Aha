@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 
 import com.aha.aha.entity.Question;
@@ -24,7 +26,6 @@ import com.aha.aha.exception.BadRequestException;
 import com.aha.aha.exception.ConflictException;
 import com.aha.aha.exception.ResourceNotFoundException;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 
 
@@ -39,6 +40,9 @@ public class RoomService {
     private final RoomSessionRepository roomSessionRepository;
     private final RoomEventService roomEventService;
     private final GameService gameService;
+
+    @Value("${app.cookie.secure}")
+    private boolean cookieSecure;
 
     public RoomService(RoomRepository roomRepository, PasswordGenerator passwordGenerator, 
         UserService userService, QuestionRepository questionRepository, RoomSessionRepository roomSessionRepository,
@@ -84,11 +88,18 @@ public class RoomService {
     }
 
     public void setRoomSessionCookie(String roomSessionId, HttpServletResponse response) {
-        Cookie cookie = new Cookie("ROOM_SESSION", roomSessionId);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(7200); // 2 hours in seconds
-        response.addCookie(cookie);
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("ROOM_SESSION", roomSessionId)
+                .httpOnly(true)
+                .path("/")
+                .maxAge(7200);
+
+        if (cookieSecure) {
+            builder.secure(true).sameSite("None");
+        } else {
+            builder.sameSite("Lax");
+        }
+
+        response.addHeader("Set-Cookie", builder.build().toString());
     }   
 
     private RoomResponse convertToRoomResponse(Room room) {
