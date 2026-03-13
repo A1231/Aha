@@ -35,10 +35,8 @@ redis.conf.local
 # Local config (secrets, overrides)
 application-local.properties
 application-local.yml
-*.env
 .env
-.env.local
-.env.*.local
+.env.*
 
 # IDE - IntelliJ IDEA
 .idea/

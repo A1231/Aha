@@ -9,6 +9,7 @@ import PlayerList from "../components/PlayerList";
 import Button from "../components/Button";
 import Notification from "../components/Notification";
 import { useStomp } from "../components/StompProvider";
+import { API_BASE_URL } from "../config";
 
 function RoomCreationPage() {
     const [room, setRoom] = useState<RoomResponse | null>(null);
@@ -21,7 +22,7 @@ function RoomCreationPage() {
     const handleStartGame = async () => {
         setError(null);
         try {
-            const response = await fetch("/api/rooms/start", { method: "POST" });
+            const response = await fetch(`${API_BASE_URL}/api/rooms/start`, { method: "POST" });
             if (!response.ok) {
                 const data = await response.json().catch(() => null);
                 setError(data?.message ?? "Failed to start game");

@@ -1,5 +1,6 @@
 package com.aha.aha.config.websocket;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -13,6 +14,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final RoomSessionHandshakeInterceptor roomSessionHandshakeInterceptor;
     private final RoomSessionChannelInterceptor roomSessionChannelInterceptor;
+
+    @Value("${app.allowed-origins}")
+    private String allowedOrigins;
 
     public WebSocketConfig(RoomSessionHandshakeInterceptor roomSessionHandshakeInterceptor,
                            RoomSessionChannelInterceptor roomSessionChannelInterceptor) {
@@ -31,7 +35,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws-aha")
                 .setHandshakeHandler(new RoomSessionHandshakeHandler())
-                .setAllowedOriginPatterns("http://localhost:5173", "http://localhost:8080")
+                .setAllowedOriginPatterns(allowedOrigins.split(","))
                 .addInterceptors(roomSessionHandshakeInterceptor)
                 .withSockJS();
     }

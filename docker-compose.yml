@@ -1,0 +1,24 @@
+services:
+  # Redis service
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+  # Backend service
+  backend:
+    build: ./backend
+    env_file: ./backend/.env.docker
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+  # Frontend service      
+  frontend:
+    build: ./frontend
+    env_file: ./frontend/.env.docker
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+ 

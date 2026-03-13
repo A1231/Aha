@@ -3,6 +3,7 @@ import type { Question } from "../types/Question";
 import AddQuestion from "./AddQuestion";
 import Button from "./Button";
 import Notification from "./Notification";
+import { API_BASE_URL } from "../config";
 
 function AddQuestionSet({ onSubmitted }: { onSubmitted: () => void }) {
     const [questions, setQuestions] = useState<Question[]>([]);
@@ -20,7 +21,7 @@ function AddQuestionSet({ onSubmitted }: { onSubmitted: () => void }) {
         e.preventDefault();
         setError(null);
         try {
-            const response = await fetch("/api/rooms/questions", {
+            const response = await fetch(`${API_BASE_URL}/api/rooms/questions`, {
                 method: "POST",
                 body: JSON.stringify({ questions }),
                 headers: { "Content-Type": "application/json" },

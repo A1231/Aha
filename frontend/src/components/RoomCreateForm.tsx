@@ -4,6 +4,7 @@ import type { RoomResponse } from "../types/RoomResponse";
 import Button from "./Button";
 import Notification from "./Notification";
 import { useStomp } from "./StompProvider";
+import { API_BASE_URL } from "../config";
 
 function RoomCreateForm({ setRoom }: { setRoom: (room: RoomResponse) => void }) {
     const { connect } = useStomp();
@@ -21,7 +22,7 @@ function RoomCreateForm({ setRoom }: { setRoom: (room: RoomResponse) => void }) 
         }
         try {
             const room: RoomRequest = { hostName, topic, maxPlayers };
-            const response = await fetch("/api/rooms", {
+            const response = await fetch(`${API_BASE_URL}/api/rooms`, {
                 method: "POST",
                 body: JSON.stringify(room),
                 headers: { "Content-Type": "application/json" },

@@ -3,6 +3,7 @@ import { useStomp } from "./StompProvider";
 import Button from "./Button";
 import Notification from "./Notification";
 import type { RoomResponse } from "../types/RoomResponse";
+import { API_BASE_URL } from "../config";
 
 export default function JoinRoomForm({ setRoom }: { setRoom: (room: RoomResponse) => void }) {
     const { connect } = useStomp();
@@ -19,7 +20,7 @@ export default function JoinRoomForm({ setRoom }: { setRoom: (room: RoomResponse
             return;
         }
         try {
-            const response = await fetch("/api/rooms/join", {
+            const response = await fetch(`${API_BASE_URL}/api/rooms/join`, {
                 method: "POST",
                 body: JSON.stringify({ roomId, password, playerName }),
                 headers: { "Content-Type": "application/json" },
