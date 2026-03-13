@@ -36,8 +36,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws-aha")
                 .setHandshakeHandler(new RoomSessionHandshakeHandler())
                 .setAllowedOriginPatterns(allowedOrigins.split(","))
-                .addInterceptors(roomSessionHandshakeInterceptor)
-                .withSockJS();
+                .addInterceptors(roomSessionHandshakeInterceptor);
     }
 
     @Override

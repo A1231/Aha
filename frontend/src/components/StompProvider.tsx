@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import { Client, type IMessage } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
 import { WS_BASE_URL } from "../config";
 
 interface StompContextValue {
@@ -26,8 +25,9 @@ export default function StompProvider({ children }: { children: ReactNode }) {
   const connect = useCallback(() => {
     if (clientRef.current?.active) return;
 
+    const wsUrl = WS_BASE_URL.replace(/^http/, "ws") + "/ws-aha";
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${WS_BASE_URL}/ws-aha`),
+      brokerURL: wsUrl,
       reconnectDelay: 5000,
       onConnect: () => setConnected(true),
       onDisconnect: () => setConnected(false),
