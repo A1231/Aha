@@ -4,7 +4,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.redis.core.TimeToLive;
 
-@RedisHash("room_session")
+@RedisHash(value= "room_session", timeToLive = 7200)
 public class RoomSession {
     @Id
     private String roomSessionId;

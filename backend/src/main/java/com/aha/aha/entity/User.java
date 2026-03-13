@@ -3,7 +3,7 @@ package com.aha.aha.entity;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 
-@RedisHash("user")
+@RedisHash(value= "user", timeToLive = 7200)
 public class User {
     @Id
     private String  id;

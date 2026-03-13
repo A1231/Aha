@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 
-@RedisHash(value= "question", timeToLive = 86400) // 24 hours
+@RedisHash(value= "question", timeToLive = 7200) // 2 hours
 public class Question {
     @Id
     private String id;
