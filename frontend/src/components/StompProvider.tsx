@@ -12,6 +12,9 @@ interface StompContextValue {
 
 const StompContext = createContext<StompContextValue | null>(null);
 
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 2000;
+
 export function useStomp() {
   const ctx = useContext(StompContext);
   if (!ctx) throw new Error("useStomp must be used within <StompProvider>");
@@ -20,6 +23,9 @@ export function useStomp() {
 
 export default function StompProvider({ children }: { children: ReactNode }) {
   const clientRef = useRef<Client | null>(null);
+  const retryCountRef = useRef(0);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasEverConnectedRef = useRef(false);
   const [connected, setConnected] = useState(false);
 
   const connect = useCallback(() => {
@@ -28,19 +34,53 @@ export default function StompProvider({ children }: { children: ReactNode }) {
     const wsUrl = WS_BASE_URL.replace(/^http/, "ws") + "/ws-aha";
     const client = new Client({
       brokerURL: wsUrl,
-      reconnectDelay: 5000,
-      onConnect: () => setConnected(true),
+      reconnectDelay: 0,
+      onConnect: () => {
+        retryCountRef.current = 0;
+        hasEverConnectedRef.current = true;
+        setConnected(true);
+      },
       onDisconnect: () => setConnected(false),
       onStompError: (frame) => {
         console.error("STOMP error:", frame.headers["message"], frame.body);
+        if (!hasEverConnectedRef.current) tryRetry();
+      },
+      onWebSocketClose: () => {
+        if (hasEverConnectedRef.current) return;
+        tryRetry();
+      },
+      onWebSocketError: () => {
+        if (hasEverConnectedRef.current) return;
+        tryRetry();
       },
     });
+
+    const tryRetry = () => {
+      if (retryTimeoutRef.current) return;
+      if (retryCountRef.current >= MAX_RETRIES) {
+        console.warn(`STOMP: gave up after ${MAX_RETRIES} connection attempts`);
+        return;
+      }
+      retryCountRef.current += 1;
+      retryTimeoutRef.current = setTimeout(() => {
+        retryTimeoutRef.current = null;
+        connect();
+      }, RETRY_DELAY_MS);
+      client.deactivate();
+      clientRef.current = null;
+    };
 
     client.activate();
     clientRef.current = client;
   }, []);
 
   const disconnect = useCallback(() => {
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+    retryCountRef.current = 0;
+    hasEverConnectedRef.current = false;
     clientRef.current?.deactivate();
     clientRef.current = null;
     setConnected(false);
